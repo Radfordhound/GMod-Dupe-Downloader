@@ -115,11 +115,11 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(146, 60);
+            this.label1.Location = new System.Drawing.Point(133, 60);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(92, 13);
+            this.label1.Size = new System.Drawing.Size(119, 13);
             this.label1.TabIndex = 6;
-            this.label1.Text = "Garry\'s Mod folder";
+            this.label1.Text = "Garry\'s Mod dupe folder";
             // 
             // MainForm
             // 
