@@ -11,6 +11,7 @@ using System.Net;
 using System.IO;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.Win32;
 
 namespace Gmod_Dupe_Downloader
 {
@@ -20,9 +21,11 @@ namespace Gmod_Dupe_Downloader
         /// Used for accessing "teh interwebs."
         /// </summary>
         public static WebClient client;
+
         public static string startuppath;
 
         #region GUI events n' stuff
+
         public MainForm()
         {
             InitializeComponent();
@@ -35,14 +38,58 @@ namespace Gmod_Dupe_Downloader
         /// </summary>
         private void MainForm_Load(object sender, EventArgs e)
         {
-            if (File.Exists(startuppath+"\\config.txt")) { textBox1.Text = File.ReadAllLines(startuppath+ "\\config.txt")[0]; }
-            if (!Directory.Exists(Application.StartupPath+"\\7zip") || !File.Exists(Application.StartupPath+"\\7zip\\7z.exe"))
+            if (File.Exists(startuppath + "\\config.txt")) { textBox1.Text = File.ReadAllLines(startuppath + "\\config.txt")[0]; }
+            else
+            {
+                // look for steam installation
+                string steamInstallPath;
+                if (Environment.Is64BitOperatingSystem)
+                {
+                    steamInstallPath = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath", null).ToString();
+                }
+                else
+                {
+                    steamInstallPath = Registry.GetValue(@"\HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam", "InstallPath", null).ToString();
+                }
+
+                if (steamInstallPath != null)
+                {
+                    // Check if Garry's Mod is installed in default library
+                    if (Directory.Exists(steamInstallPath + @"\steamapps\common\GarrysMod\garrysmod\dupes"))
+                    {
+                        textBox1.Text = steamInstallPath + @"\steamapps\common\GarrysMod\garrysmod\dupes";
+                    }
+                    else if (File.Exists(steamInstallPath + @"\steamapps\libraryfolders.vdf"))
+                    {
+                        // Find more libraries
+                        var libraryFile = File.ReadAllLines(steamInstallPath + @"\steamapps\libraryfolders.vdf").ToList();
+                        // Remove unnecessary lines
+                        libraryFile.Remove("\"LibraryFolders\"");
+                        libraryFile.Remove("{");
+                        libraryFile.Remove("}");
+                        libraryFile.RemoveAll(x => x.Contains("TimeNextStatsReport") || x.Contains("ContentStatsID"));
+
+                        // Look for Garry's Mod in libraries
+                        foreach (var lib in libraryFile)
+                        {
+                            var path = lib.Split('\t')[3].Trim('\"');
+                            if (Directory.Exists(path + @"\steamapps\common\GarrysMod\garrysmod\dupes"))
+                            {
+                                textBox1.Text = path + @"\steamapps\common\GarrysMod\garrysmod\dupes";
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!Directory.Exists(Application.StartupPath + "\\7zip") || !File.Exists(Application.StartupPath + "\\7zip\\7z.exe"))
             {
                 if (MessageBox.Show("To extract dupes, GMod Dupe Downloader needs a file archiver called \"7-Zip.\" Would you like to download it?", "GMod Dupe Downloader", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     new Downloadfrm().ShowDialog();
                 }
-                else { MessageBox.Show("Alright. Just keep in mind that dupes will not successfully install themselves and will have to be manually extracted.","GMod Dupe Downloader",MessageBoxButtons.OK,MessageBoxIcon.Warning); }
+                else { MessageBox.Show("Alright. Just keep in mind that dupes will not successfully install themselves and will have to be manually extracted.", "GMod Dupe Downloader", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
             }
         }
 
@@ -66,7 +113,7 @@ namespace Gmod_Dupe_Downloader
         /// </summary>
         private void txtbx_TextChanged(object sender, EventArgs e)
         {
-            if ((txtbx.Text.Length == 9 && Stringisonlynumbers(txtbx.Text)) || (txtbx.Text.Contains("http") && txtbx.Text.Contains("id=") && txtbx.Text.Length >= 62 && Stringisonlynumbers(txtbx.Text.Substring((txtbx.Text.Contains("https")?55:54), 9)))) { txtbx.ForeColor = Color.Green; }
+            if ((txtbx.Text.Length == 9 && Stringisonlynumbers(txtbx.Text)) || (txtbx.Text.Contains("http") && txtbx.Text.Contains("id=") && txtbx.Text.Length >= 62 && Stringisonlynumbers(txtbx.Text.Substring((txtbx.Text.Contains("https") ? 55 : 54), 9)))) { txtbx.ForeColor = Color.Green; }
             else { txtbx.ForeColor = Color.Red; }
         }
 
@@ -82,7 +129,8 @@ namespace Gmod_Dupe_Downloader
                 downloaddupe.Start();
             }
         }
-        #endregion
+
+        #endregion GUI events n' stuff
 
         /// <summary>
         /// The main event! What it does is pretty self-explanatory. :P
@@ -120,7 +168,7 @@ namespace Gmod_Dupe_Downloader
                     if (File.Exists(Application.StartupPath + "\\temp.dupe")) { ExtractFile(Application.StartupPath + "\\temp.dupe", Application.StartupPath + "\\tempout"); }
 
                     //If it extracted successfully, rename it as well as the downloaded thumbnail and install the dupe to GMod
-                    string gmoddupesfolder = (Directory.Exists(textBox1.Text)) ? textBox1.Text : (Directory.Exists(@"C:\Program Files (x86)\Steam\SteamApps\common\GarrysMod\garrysmod\dupes"))? @"C:\Program Files (x86)\Steam\SteamApps\common\GarrysMod\garrysmod\dupes" : (Directory.Exists(@"C:\Program Files\Steam\SteamApps\common\GarrysMod\garrysmod\dupes")) ? @"C:\Program Files\Steam\SteamApps\common\GarrysMod\garrysmod\dupes" : null;
+                    string gmoddupesfolder = (Directory.Exists(textBox1.Text)) ? textBox1.Text : (Directory.Exists(@"C:\Program Files (x86)\Steam\SteamApps\common\GarrysMod\garrysmod\dupes")) ? @"C:\Program Files (x86)\Steam\SteamApps\common\GarrysMod\garrysmod\dupes" : (Directory.Exists(@"C:\Program Files\Steam\SteamApps\common\GarrysMod\garrysmod\dupes")) ? @"C:\Program Files\Steam\SteamApps\common\GarrysMod\garrysmod\dupes" : null;
                     if (jsonfile.Length >= 5 && jsonfile[4].IndexOf("title") != -1)
                     {
                         dupetitle = FileNameString(jsonfile[4].Substring(jsonfile[4].IndexOf("title") + 9, jsonfile[4].Length - (jsonfile[4].IndexOf("title") + 10)));
@@ -142,7 +190,6 @@ namespace Gmod_Dupe_Downloader
                         Invoke(new Action(() => { MessageBox.Show(this, "Dupe \"" + dupetitle + "\" was successfully downloaded and installed!", "GMod Dupe Downloader", MessageBoxButtons.OK, MessageBoxIcon.Information); }));
                     }
                     else { Invoke(new Action(() => { MessageBox.Show(this, "Dupe was successfully downloaded, but GMod dupe folder could not be found.", "GMod Dupe Downloader", MessageBoxButtons.OK, MessageBoxIcon.Error); })); }
-
                 }
                 else { Invoke(new Action(() => { MessageBox.Show(this, "The downloaded JSON file doesn't contain a \"file_url\" tag, and may be invalid or corrupt.", "GMod Dupe Downloader", MessageBoxButtons.OK, MessageBoxIcon.Error); })); }
             }
@@ -187,8 +234,8 @@ namespace Gmod_Dupe_Downloader
             {
                 ProcessStartInfo pro = new ProcessStartInfo();
                 pro.WindowStyle = ProcessWindowStyle.Hidden;
-                pro.FileName = Application.StartupPath+"\\7zip\\7z.exe";
-                pro.Arguments = "e \"" + source + "\" -o\"" + destination+"\"";
+                pro.FileName = Application.StartupPath + "\\7zip\\7z.exe";
+                pro.Arguments = "e \"" + source + "\" -o\"" + destination + "\"";
                 Process x = Process.Start(pro);
                 x.WaitForExit();
             }
@@ -215,7 +262,7 @@ namespace Gmod_Dupe_Downloader
 
         private void MainForm_Closing(object sender, FormClosingEventArgs e)
         {
-            File.WriteAllText(startuppath+ "\\config.txt", (string.IsNullOrEmpty(textBox1.Text) || !Directory.Exists(textBox1.Text))? @"C:\Program Files (x86)\Steam\SteamApps\common\GarrysMod\garrysmod\dupes" : textBox1.Text);
+            File.WriteAllText(startuppath + "\\config.txt", (string.IsNullOrEmpty(textBox1.Text) || !Directory.Exists(textBox1.Text)) ? @"C:\Program Files (x86)\Steam\SteamApps\common\GarrysMod\garrysmod\dupes" : textBox1.Text);
         }
     }
 }
