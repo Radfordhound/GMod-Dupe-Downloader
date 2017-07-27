@@ -52,33 +52,37 @@ namespace Gmod_Dupe_Downloader
                     steamInstallPath = Registry.GetValue(@"\HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam", "InstallPath", null).ToString();
                 }
 
-                // Check if Garry's Mod is installed in default library
-                if (Directory.Exists(steamInstallPath + @"\steamapps\common\GarrysMod\garrysmod\dupes"))
+                if (steamInstallPath != null)
                 {
-                    textBox1.Text = steamInstallPath + @"\steamapps\common\GarrysMod\garrysmod\dupes";
-                }
-                else
-                {
-                    // Find more libraries
-                    var libraryFile = File.ReadAllLines(steamInstallPath + @"\steamapps\libraryfolders.vdf").ToList();
-                    // Remove unnecessary lines
-                    libraryFile.Remove("\"LibraryFolders\"");
-                    libraryFile.Remove("{");
-                    libraryFile.Remove("}");
-                    libraryFile.RemoveAll(x => x.Contains("TimeNextStatsReport") || x.Contains("ContentStatsID"));
-
-                    // Look for Garry's Mod in libraries
-                    foreach (var lib in libraryFile)
+                    // Check if Garry's Mod is installed in default library
+                    if (Directory.Exists(steamInstallPath + @"\steamapps\common\GarrysMod\garrysmod\dupes"))
                     {
-                        var path = lib.Split('\t')[3].Trim('\"');
-                        if (Directory.Exists(path + @"\steamapps\common\GarrysMod\garrysmod\dupes"))
+                        textBox1.Text = steamInstallPath + @"\steamapps\common\GarrysMod\garrysmod\dupes";
+                    }
+                    else if (File.Exists(steamInstallPath + @"\steamapps\libraryfolders.vdf"))
+                    {
+                        // Find more libraries
+                        var libraryFile = File.ReadAllLines(steamInstallPath + @"\steamapps\libraryfolders.vdf").ToList();
+                        // Remove unnecessary lines
+                        libraryFile.Remove("\"LibraryFolders\"");
+                        libraryFile.Remove("{");
+                        libraryFile.Remove("}");
+                        libraryFile.RemoveAll(x => x.Contains("TimeNextStatsReport") || x.Contains("ContentStatsID"));
+
+                        // Look for Garry's Mod in libraries
+                        foreach (var lib in libraryFile)
                         {
-                            textBox1.Text = path + @"\steamapps\common\GarrysMod\garrysmod\dupes";
-                            return;
+                            var path = lib.Split('\t')[3].Trim('\"');
+                            if (Directory.Exists(path + @"\steamapps\common\GarrysMod\garrysmod\dupes"))
+                            {
+                                textBox1.Text = path + @"\steamapps\common\GarrysMod\garrysmod\dupes";
+                                return;
+                            }
                         }
                     }
                 }
             }
+
             if (!Directory.Exists(Application.StartupPath + "\\7zip") || !File.Exists(Application.StartupPath + "\\7zip\\7z.exe"))
             {
                 if (MessageBox.Show("To extract dupes, GMod Dupe Downloader needs a file archiver called \"7-Zip.\" Would you like to download it?", "GMod Dupe Downloader", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
